@@ -6,15 +6,39 @@ namespace FleetPulse.API.Controllers;
 [Route("api/[controller]")]
 public class EquipmentController : ControllerBase
 {
-    [HttpGet]
-    public IActionResult Get()
+    private static readonly List<Equipment> Equipment = new()
     {
-        var equipment = new[]
-        {
-            new { id = "CAT320", name = "Caterpillar 320D", status = "operational", hours = 2450 },
-            new { id = "KOMATSU350", name = "Komatsu PC350", status = "operational", hours = 3120 },
-            new { id = "VOLVO240", name = "Volvo EC240B", status = "maintenance", hours = 1890 }
-        };
-        return Ok(equipment);
+        new Equipment { Id = "CAT320", Name = "Caterpillar 320D", Status = "operational", Hours = 2450 },
+        new Equipment { Id = "KOMATSU350", Name = "Komatsu PC350", Status = "operational", Hours = 3120 },
+        new Equipment { Id = "VOLVO240", Name = "Volvo EC240B", Status = "maintenance", Hours = 1890 }
+    };
+
+    [HttpGet]
+    public ActionResult<IEnumerable<EquipmentDto>> Get()
+    {
+        return Ok(Equipment);
     }
+
+    [HttpGet("{id}")]
+    public ActionResult<EquipmentDto> GetById(string id)
+    {
+        var item = Equipment.FirstOrDefault(e => e.Id == id);
+        return item == null ? NotFound() : Ok(item);
+    }
+}
+
+public class EquipmentDto
+{
+    public string Id { get; set; }
+    public string Name { get; set; }
+    public string Status { get; set; }
+    public int Hours { get; set; }
+}
+
+public class Equipment
+{
+    public string Id { get; set; }
+    public string Name { get; set; }
+    public string Status { get; set; }
+    public int Hours { get; set; }
 }
