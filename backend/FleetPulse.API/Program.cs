@@ -20,7 +20,7 @@ builder.Services.AddControllers();
 builder.Services.AddSwaggerGen();
 builder.Services.AddScoped<PdfReportService>();
 builder.Services.AddScoped<SimplePdfService>();
-builder.Services.AddSingleton<DiagnosticStreamService>();
+
 
 var app = builder.Build();
 
