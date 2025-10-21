@@ -1,12 +1,13 @@
 {
   "version": 2,
-  "dgSpecHash": "Hr1EN4npTJs=",
+  "dgSpecHash": "gFCJnwsIZ8I=",
   "success": true,
   "projectFilePath": "C:\\Users\\jcrod\\Desktop\\FleetPulse\\backend\\FleetPulse.API\\FleetPulse.API.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\jcrod\\.nuget\\packages\\microsoft.aspnetcore.openapi\\9.0.10\\microsoft.aspnetcore.openapi.9.0.10.nupkg.sha512",
     "C:\\Users\\jcrod\\.nuget\\packages\\microsoft.extensions.apidescription.server\\9.0.0\\microsoft.extensions.apidescription.server.9.0.0.nupkg.sha512",
     "C:\\Users\\jcrod\\.nuget\\packages\\microsoft.openapi\\1.6.25\\microsoft.openapi.1.6.25.nupkg.sha512",
+    "C:\\Users\\jcrod\\.nuget\\packages\\questpdf\\2025.7.3\\questpdf.2025.7.3.nupkg.sha512",
     "C:\\Users\\jcrod\\.nuget\\packages\\swashbuckle.aspnetcore\\9.0.6\\swashbuckle.aspnetcore.9.0.6.nupkg.sha512",
     "C:\\Users\\jcrod\\.nuget\\packages\\swashbuckle.aspnetcore.swagger\\9.0.6\\swashbuckle.aspnetcore.swagger.9.0.6.nupkg.sha512",
     "C:\\Users\\jcrod\\.nuget\\packages\\swashbuckle.aspnetcore.swaggergen\\9.0.6\\swashbuckle.aspnetcore.swaggergen.9.0.6.nupkg.sha512",

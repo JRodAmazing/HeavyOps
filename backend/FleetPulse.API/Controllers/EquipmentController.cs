@@ -31,16 +31,46 @@ public class EquipmentController : ControllerBase
             Id = "KOMATSU350",
             Name = "Komatsu PC350",
             Status = "operational",
-            Hours = 3120
+            Hours = 3120,
+            ServiceLogs = new()
+            {
+                new ServiceLog
+                {
+                    DatePerformed = DateTime.UtcNow.AddDays(-14),
+                    HoursAtService = 3100,
+                    Notes = "Bucket cylinder replacement and hydraulic fluid top-up",
+                    LaborCost = 425
+                },
+                new ServiceLog
+                {
+                    DatePerformed = DateTime.UtcNow.AddDays(-3),
+                    HoursAtService = 3115,
+                    Notes = "Engine belt inspection",
+                    LaborCost = 75
+                }
+            }
         },
         new Equipment
         {
             Id = "VOLVO240",
             Name = "Volvo EC240B",
             Status = "operational",
-            Hours = 1850
+            Hours = 1850,
+            ServiceLogs = new()
+            {
+                new ServiceLog
+                {
+                    DatePerformed = DateTime.UtcNow.AddDays(-21),
+                    HoursAtService = 1800,
+                    Notes = "Major service: oil change, filter replacement, coolant flush",
+                    LaborCost = 350
+                }
+            }
         }
     };
+
+    // Static method for Reports controller to access equipment
+    public static List<Equipment> GetEquipmentList() => _equipment;
 
     // GET all equipment
     [HttpGet]
