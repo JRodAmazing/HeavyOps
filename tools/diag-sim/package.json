@@ -1,0 +1,18 @@
+{
+  "name": "fleetpulse-diag-simulator",
+  "version": "1.0.0",
+  "description": "Diagnostic frame simulator for FleetPulse live telemetry testing",
+  "main": "simulator.js",
+  "bin": {
+    "fleetpulse-simulator": "./simulator.js"
+  },
+  "scripts": {
+    "start": "node simulator.js",
+    "normal": "SCENARIO=normal DURATION=120 node simulator.js",
+    "overheat": "SCENARIO=overheat DURATION=60 node simulator.js",
+    "lowpressure": "SCENARIO=lowpressure DURATION=60 node simulator.js"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

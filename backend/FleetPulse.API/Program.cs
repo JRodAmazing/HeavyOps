@@ -19,6 +19,7 @@ builder.Services.AddCors(options =>
 builder.Services.AddControllers();
 builder.Services.AddSwaggerGen();
 builder.Services.AddScoped<PdfReportService>();
+builder.Services.AddSingleton<DiagnosticStreamService>();
 builder.Services.AddScoped<SimplePdfService>();
 
 

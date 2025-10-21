@@ -1,0 +1,11 @@
+{
+  "name": "fleetpulse-diag-simulator",
+  "version": "1.0.0",
+  "description": "J1939 diagnostic frame simulator",
+  "main": "simulator.js",
+  "scripts": {
+    "start": "node simulator.js",
+    "scenario:normal": "set SCENARIO=normal&& node simulator.js",
+    "scenario:overheat": "set SCENARIO=overheat&& node simulator.js"
+  }
+}

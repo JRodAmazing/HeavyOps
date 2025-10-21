@@ -1,0 +1,369 @@
+#!/usr/bin/env node
+
+/**
+ * FleetPulse Diagnostic Simulator
+ * 
+ * Simulates realistic J1939 CAN diagnostic frames for heavy equipment
+ * Posts frames to: POST /api/stream/ingest
+ * 
+ * Usage:
+ *   node simulator.js
+ *   # Or with custom settings:
+ *   API_BASE_URL=http://localhost:5038 DURATION=300 SCENARIO=overheat node simulator.js
+ * 
+ * Scenarios:
+ *   normal - realistic RPM/temp variations, 5 min duration
+ *   overheat - triggers coolant > 105°C alert at ~2 min
+ *   lowpressure - triggers oil pressure alert
+ */
+
+const http = require('http');
+const url = require('url');
+
+// Configuration
+const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:5038';
+const DURATION = parseInt(process.env.DURATION) || 300; // seconds (5 min default)
+const SCENARIO = process.env.SCENARIO || 'normal'; // normal, overheat, lowpressure
+const FRAME_INTERVAL = 250; // milliseconds between frames
+
+// Equipment IDs to simulate
+const EQUIPMENT_IDS = ['CAT320', 'KOMATSU350', 'VOLVO240'];
+
+// State for each equipment (RPM, temps, pressure, hours)
+const equipmentState = {
+  CAT320: {
+    rpm: 800,
+    rpmTarget: 800,
+    coolantTemp: 85,
+    coolantTarget: 85,
+    oilPressure: 45,
+    oilTarget: 45,
+    engineHours: 2450
+  },
+  KOMATSU350: {
+    rpm: 750,
+    rpmTarget: 750,
+    coolantTemp: 82,
+    coolantTarget: 82,
+    oilPressure: 42,
+    oilTarget: 42,
+    engineHours: 3120
+  },
+  VOLVO240: {
+    rpm: 700,
+    rpmTarget: 700,
+    coolantTemp: 80,
+    coolantTarget: 80,
+    oilPressure: 40,
+    oilTarget: 40,
+    engineHours: 1890
+  }
+};
+
+/**
+ * Generate J1939 diagnostic frame
+ * 
+ * J1939 uses 29-bit CAN identifiers with structured format:
+ * Priority | Reserved | Data Page | PDU Format | PDU Specific | Source Address
+ * 
+ * Common PGNs:
+ * 0x00F004 - Electronic Engine Controller 1 (RPM, throttle, temp)
+ * 0x00FEEE - Engine Temperature (coolant)
+ * 0x00F400 - Engine Pressure/Temperature (oil pressure)
+ */
+function generateFrame(equipmentId, state) {
+  const canId = getCanIdForEquipment(equipmentId);
+  
+  // Simulate realistic state changes
+  updateState(equipmentId, state);
+  
+  // Encode values as 2-byte hex strings (J1939 format)
+  // RPM: 0-3000 range encoded as 0x0000-0x0BB8
+  const rpmValue = Math.floor(state.rpm * 0.5);
+  const rpmHex = rpmValue.toString(16).padStart(4, '0');
+  
+  // Coolant temp: offset by -40°C, stored at 1°C resolution
+  // 85°C stored as hex value (85 + 40) = 125 = 0x007D
+  const coolantValue = Math.floor(state.coolantTemp + 40);
+  const coolantHex = coolantValue.toString(16).padStart(4, '0');
+  
+  // Oil pressure: stored in 0.5 kPa increments
+  // 45 psi ≈ 310 kPa, encoded as value/0.5 = 620 = 0x026C
+  const oilValue = Math.floor(state.oilPressure * 100 / 5);
+  const oilHex = oilValue.toString(16).padStart(4, '0');
+  
+  // Construct 8-byte data payload (16 hex chars)
+  const data = (rpmHex + coolantHex + oilHex + '0000').substring(0, 16).toUpperCase();
+  
+  return {
+    equipmentId,
+    timestamp: new Date().toISOString(),
+    canId: `0x${canId}`,
+    data: data
+  };
+}
+
+/**
+ * Get CAN ID based on equipment type
+ */
+function getCanIdForEquipment(equipmentId) {
+  const canIds = {
+    CAT320:     '0CF00400',
+    KOMATSU350: '0CF00401',
+    VOLVO240:   '0CF00402'
+  };
+  return canIds[equipmentId] || '0CF00400';
+}
+
+/**
+ * Update equipment state with realistic variations based on scenario
+ */
+function updateState(equipmentId, state) {
+  const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
+  
+  // ===== SCENARIO 1: Normal Operation =====
+  if (SCENARIO === 'normal') {
+    // Phase 1: Startup (0-10s) - RPM ramp up
+    if (elapsedSeconds < 10) {
+      state.rpmTarget = 800 + (elapsedSeconds * 60);
+      state.coolantTarget = 85;
+    }
+    // Phase 2: Light load (10-30s) - stable RPM, slight temp rise
+    else if (elapsedSeconds < 30) {
+      state.rpmTarget = 1400 + (Math.random() - 0.5) * 200;
+      state.coolantTarget = Math.min(92, state.coolantTarget + 0.2);
+    }
+    // Phase 3: Heavy load (30-50s) - high RPM, higher temps
+    else if (elapsedSeconds < 50) {
+      state.rpmTarget = 1800 + (Math.random() - 0.5) * 300;
+      state.coolantTarget = Math.min(95, state.coolantTarget + 0.3);
+    }
+    // Phase 4: Cooldown (50-60s) - back to idle
+    else if (elapsedSeconds < 60) {
+      state.rpmTarget = 1000 + (Math.random() - 0.5) * 100;
+      state.coolantTarget = Math.max(85, state.coolantTarget - 0.3);
+    }
+    // Phase 5: Steady idle (60s+)
+    else {
+      state.rpmTarget = 900 + (Math.random() - 0.5) * 100;
+      state.coolantTarget = 85 + (Math.random() - 0.5) * 2;
+    }
+    
+    // Oil pressure correlates with RPM
+    state.oilTarget = 30 + (state.rpmTarget / 120);
+  }
+  
+  // ===== SCENARIO 2: Overheat Condition =====
+  else if (SCENARIO === 'overheat') {
+    // Phase 1: Startup (0-10s)
+    if (elapsedSeconds < 10) {
+      state.rpmTarget = 800 + (elapsedSeconds * 80);
+      state.coolantTarget = 85;
+    }
+    // Phase 2: Push to high load (10-30s) - COOLANT RISES RAPIDLY
+    else if (elapsedSeconds < 30) {
+      state.rpmTarget = 2500;
+      state.coolantTarget = Math.min(115, state.coolantTarget + 1.5); // SPIKE!
+      state.oilTarget = 50;
+    }
+    // Phase 3: Engine backs off (30-45s) - but still hot
+    else if (elapsedSeconds < 45) {
+      state.rpmTarget = 1200;
+      state.coolantTarget = Math.max(100, state.coolantTarget - 0.5); // Still critical
+      state.oilTarget = 35;
+    }
+    // Phase 4: Cool down (45s+)
+    else {
+      state.rpmTarget = 900;
+      state.coolantTarget = Math.max(85, state.coolantTarget - 0.8);
+      state.oilTarget = 35;
+    }
+  }
+  
+  // ===== SCENARIO 3: Low Oil Pressure =====
+  else if (SCENARIO === 'lowpressure') {
+    if (elapsedSeconds < 10) {
+      state.rpmTarget = 800 + (elapsedSeconds * 80);
+    } else if (elapsedSeconds < 30) {
+      state.rpmTarget = 2000;
+      state.oilTarget = Math.max(12, state.oilTarget - 0.3); // PRESSURE DROPS!
+    } else if (elapsedSeconds < 45) {
+      state.rpmTarget = 1200;
+      state.oilTarget = 18;
+    } else {
+      state.rpmTarget = 900;
+      state.oilTarget = 35; // Back to normal
+    }
+    
+    state.coolantTarget = 85 + (Math.random() - 0.5) * 5;
+  }
+  
+  // Smooth transitions (exponential smoothing, not instant jumps)
+  // This creates realistic needle movements
+  state.rpm += (state.rpmTarget - state.rpm) * 0.15;
+  state.coolantTemp += (state.coolantTarget - state.coolantTemp) * 0.10;
+  state.oilPressure += (state.oilTarget - state.oilPressure) * 0.12;
+  
+  // Add small random noise (real sensors have noise)
+  state.rpm += (Math.random() - 0.5) * 25;
+  state.coolantTemp += (Math.random() - 0.5) * 0.4;
+  state.oilPressure += (Math.random() - 0.5) * 0.8;
+}
+
+/**
+ * Post frame to backend API via HTTP
+ */
+function postFrame(frame) {
+  return new Promise((resolve, reject) => {
+    try {
+      const parsedUrl = new url.URL(API_BASE_URL);
+      
+      const options = {
+        hostname: parsedUrl.hostname,
+        port: parsedUrl.port || 80,
+        path: '/api/stream/ingest',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(JSON.stringify(frame))
+        }
+      };
+      
+      const req = http.request(options, (res) => {
+        let data = '';
+        res.on('data', chunk => data += chunk);
+        res.on('end', () => {
+          if (res.statusCode === 200 || res.statusCode === 201 || res.statusCode === 204) {
+            resolve(res.statusCode);
+          } else {
+            reject(new Error(`HTTP ${res.statusCode}: ${data}`));
+          }
+        });
+      });
+      
+      req.on('error', (error) => {
+        reject(error);
+      });
+      
+      req.setTimeout(5000, () => {
+        req.destroy();
+        reject(new Error('Request timeout'));
+      });
+      
+      req.write(JSON.stringify(frame));
+      req.end();
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
+/**
+ * Main simulation loop
+ */
+let startTime = Date.now();
+let frameCount = 0;
+let errorCount = 0;
+let lastPrintTime = 0;
+
+async function runSimulation() {
+  console.log('\n' + '='.repeat(60));
+  console.log('🚀 FleetPulse Diagnostic Simulator');
+  console.log('='.repeat(60));
+  console.log(`📍 API Base URL:  ${API_BASE_URL}`);
+  console.log(`⏱️  Duration:      ${DURATION} seconds`);
+  console.log(`🎯 Scenario:      ${SCENARIO}`);
+  console.log(`📊 Equipment:     ${EQUIPMENT_IDS.join(', ')}`);
+  console.log(`📤 Frame Rate:    Every ${FRAME_INTERVAL}ms (${1000/FRAME_INTERVAL} fps)`);
+  console.log('='.repeat(60));
+  console.log('Starting simulation in 2 seconds...\n');
+  
+  // Wait before starting
+  await new Promise(resolve => setTimeout(resolve, 2000));
+  
+  startTime = Date.now();
+  
+  const interval = setInterval(async () => {
+    const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
+    const nowMs = Date.now();
+    
+    // Check if simulation duration is complete
+    if (elapsedSeconds >= DURATION) {
+      clearInterval(interval);
+      await new Promise(resolve => setTimeout(resolve, 500)); // Let last posts complete
+      printSummary();
+      process.exit(0);
+    }
+    
+    // Post frame for each equipment unit
+    for (const equipmentId of EQUIPMENT_IDS) {
+      const frame = generateFrame(equipmentId, equipmentState[equipmentId]);
+      
+      try {
+        await postFrame(frame);
+        frameCount++;
+      } catch (error) {
+        errorCount++;
+        // Only log errors after first few (avoid spam)
+        if (errorCount <= 5) {
+          console.error(`  ❌ [${equipmentId}] ${error.message}`);
+        }
+      }
+    }
+    
+    // Print status every 2 seconds (8 frames at 250ms interval)
+    if (nowMs - lastPrintTime >= 2000) {
+      lastPrintTime = nowMs;
+      const state1 = equipmentState.CAT320;
+      const state2 = equipmentState.KOMATSU350;
+      const state3 = equipmentState.VOLVO240;
+      
+      console.log(
+        `[${elapsedSeconds.toString().padStart(3)}s] ` +
+        `CAT320: RPM ${Math.floor(state1.rpm).toString().padStart(4)} | ` +
+        `${state1.coolantTemp.toFixed(1).padStart(5)}°C | ` +
+        `${state1.oilPressure.toFixed(1).padStart(5)} psi  |  ` +
+        `KOMATSU350: RPM ${Math.floor(state2.rpm).toString().padStart(4)} | ` +
+        `${state2.coolantTemp.toFixed(1).padStart(5)}°C`
+      );
+    }
+  }, FRAME_INTERVAL);
+}
+
+/**
+ * Print summary when simulation completes
+ */
+function printSummary() {
+  const elapsed = Math.floor((Date.now() - startTime) / 1000);
+  const framesPerEquipment = Math.floor(frameCount / EQUIPMENT_IDS.length);
+  
+  console.log('\n' + '='.repeat(60));
+  console.log('✅ Simulation Complete');
+  console.log('='.repeat(60));
+  console.log(`📊 Total Frames Posted:  ${frameCount} (${framesPerEquipment} per equipment)`);
+  console.log(`❌ Errors Encountered:   ${errorCount}`);
+  console.log(`⏱️  Actual Duration:      ${elapsed} seconds`);
+  console.log('='.repeat(60));
+  console.log('\n✅ Next Steps:\n');
+  console.log('1. Check frontend: http://localhost:3000');
+  console.log('2. Navigate to Equipment Detail page');
+  console.log('3. Click "Live Telemetry" tab');
+  console.log('4. Verify gauges show the values we just streamed');
+  console.log('5. Check for alerts (if coolant > 105°C or oil pressure < 20 psi)');
+  console.log('\n');
+}
+
+/**
+ * Handle graceful shutdown
+ */
+process.on('SIGINT', () => {
+  console.log('\n\n⛔ Simulator interrupted by user');
+  printSummary();
+  process.exit(0);
+});
+
+// Start simulation
+runSimulation().catch(error => {
+  console.error('\n❌ Fatal error:', error);
+  process.exit(1);
+});

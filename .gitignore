@@ -16,3 +16,7 @@ obj/
 # Environment
 .env
 .env.local
+bin/
+obj/
+.vs/
+*.mp4
