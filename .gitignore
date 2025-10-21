@@ -39,3 +39,12 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+.vercel
+
+# Build artifacts
+bin/
+obj/
+.vs/
+*.dll
+*.pdb
