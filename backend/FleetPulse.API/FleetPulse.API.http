@@ -1,4 +1,4 @@
-@FleetPulse.API_HostAddress = http://localhost:5069
+@FleetPulse.API_HostAddress = http://localhost:5050
 
 GET {{FleetPulse.API_HostAddress}}/weatherforecast/
 Accept: application/json

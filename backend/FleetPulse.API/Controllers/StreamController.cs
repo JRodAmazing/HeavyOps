@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
+using FleetPulse.API.Models;
 using FleetPulse.API.Services;
-using FleetPulse.API.Models;  // ← ADD THIS LINE
-using System.Collections.Generic;
 
 namespace FleetPulse.API.Controllers
 {
@@ -19,9 +18,7 @@ namespace FleetPulse.API.Controllers
         [HttpPost("ingest")]
         public IActionResult IngestFrame([FromBody] DiagnosticFrame frame)
         {
-            if (frame == null)
-                return BadRequest("Frame cannot be null");
-
+            if (frame == null) return BadRequest();
             _streamService.AddFrame(frame);
             return Ok(new { message = "Frame ingested", frameId = frame.Id });
         }
@@ -30,17 +27,10 @@ namespace FleetPulse.API.Controllers
         public IActionResult GetLatestFrame(string equipmentId)
         {
             var frame = _streamService.GetLatestFrame(equipmentId);
-            if (frame == null)
-                return NotFound($"No frames for equipment {equipmentId}");
-
-            return Ok(frame);
+            return frame == null ? NotFound() : Ok(frame);
         }
 
         [HttpGet("{equipmentId}/recent")]
-        public IActionResult GetRecentFrames(string equipmentId)
-        {
-            var frames = _streamService.GetRecentFrames(equipmentId, 60);
-            return Ok(frames);
-        }
+        public IActionResult GetRecentFrames(string equipmentId) => Ok(_streamService.GetRecentFrames(equipmentId, 60));
     }
 }
