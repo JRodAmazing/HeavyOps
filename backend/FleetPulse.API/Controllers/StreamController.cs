@@ -1,54 +1,46 @@
-using FleetPulse.API.Models;
-using FleetPulse.API.Services;
 using Microsoft.AspNetCore.Mvc;
+using FleetPulse.API.Services;
+using FleetPulse.API.Models;  // ← ADD THIS LINE
+using System.Collections.Generic;
 
-namespace FleetPulse.API.Controllers;
-
-[ApiController]
-[Route("api/stream")]
-public class StreamController : ControllerBase
+namespace FleetPulse.API.Controllers
 {
-    private readonly DiagnosticStreamService _streamService;
-
-    public StreamController(DiagnosticStreamService streamService)
+    [ApiController]
+    [Route("api/stream")]
+    public class StreamController : ControllerBase
     {
-        _streamService = streamService;
-    }
+        private readonly DiagnosticStreamService _streamService;
 
-    [HttpPost("ingest")]
-    public IActionResult IngestFrame([FromBody] DiagnosticFrame frame)
-    {
-        if (string.IsNullOrEmpty(frame.EquipmentId) || string.IsNullOrEmpty(frame.CanId))
-            return BadRequest("Missing EquipmentId or CanId");
-
-        _streamService.IngestFrame(frame);
-        
-        var parsed = _streamService.ParseJ1939Frame(frame.Data);
-        
-        return Ok(new
+        public StreamController(DiagnosticStreamService streamService)
         {
-            message = "Frame ingested",
-            frameId = frame.Id,
-            parsed
-        });
-    }
+            _streamService = streamService;
+        }
 
-    [HttpGet("{equipmentId}/latest")]
-    public IActionResult GetLatestFrame(string equipmentId)
-    {
-        var frame = _streamService.GetLatestFrame(equipmentId);
-        if (frame == null)
-            return NotFound();
+        [HttpPost("ingest")]
+        public IActionResult IngestFrame([FromBody] DiagnosticFrame frame)
+        {
+            if (frame == null)
+                return BadRequest("Frame cannot be null");
 
-        var parsed = _streamService.ParseJ1939Frame(frame.Data);
-        
-        return Ok(new { frame, parsed });
-    }
+            _streamService.AddFrame(frame);
+            return Ok(new { message = "Frame ingested", frameId = frame.Id });
+        }
 
-    [HttpGet("{equipmentId}/recent")]
-    public IActionResult GetRecentFrames(string equipmentId, [FromQuery] int count = 60)
-    {
-        var frames = _streamService.GetRecentFrames(equipmentId, count);
-        return Ok(frames);
+        [HttpGet("{equipmentId}/latest")]
+        public IActionResult GetLatestFrame(string equipmentId)
+        {
+            var frame = _streamService.GetLatestFrame(equipmentId);
+            if (frame == null)
+                return NotFound($"No frames for equipment {equipmentId}");
+
+            return Ok(frame);
+        }
+
+        [HttpGet("{equipmentId}/recent")]
+        public IActionResult GetRecentFrames(string equipmentId)
+        {
+            var frames = _streamService.GetRecentFrames(equipmentId, 60);
+            return Ok(frames);
+        }
     }
 }

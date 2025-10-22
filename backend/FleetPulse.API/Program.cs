@@ -1,14 +1,14 @@
-using QuestPDF.Infrastructure;
-using FleetPulse.API.Services;
-
-// Set QuestPDF Community License
-QuestPDF.Settings.License = LicenseType.Community;
-
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+builder.Services.AddSingleton<FleetPulse.API.Services.DiagnosticStreamService>();
+builder.Services.AddSingleton<FleetPulse.API.Services.PdfReportService>();
 
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowLocalhost", policy =>
+    options.AddPolicy("AllowAll", policy =>
     {
         policy.AllowAnyOrigin()
               .AllowAnyMethod()
@@ -16,16 +16,7 @@ builder.Services.AddCors(options =>
     });
 });
 
-builder.Services.AddControllers();
-builder.Services.AddSwaggerGen();
-builder.Services.AddScoped<PdfReportService>();
-builder.Services.AddSingleton<DiagnosticStreamService>();
-builder.Services.AddScoped<SimplePdfService>();
-
-
 var app = builder.Build();
-
-app.UseCors("AllowLocalhost");
 
 if (app.Environment.IsDevelopment())
 {
@@ -33,7 +24,6 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseAuthorization();
+app.UseCors("AllowAll");
 app.MapControllers();
-
 app.Run();
