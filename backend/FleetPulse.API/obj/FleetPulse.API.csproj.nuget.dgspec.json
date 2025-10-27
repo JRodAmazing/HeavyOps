@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\jcrod\\Desktop\\FleetPulse\\backend\\FleetPulse.API\\FleetPulse.API.csproj": {}
+    "C:\\Users\\jcrod\\Desktop\\HeavyOps\\backend\\FleetPulse.API\\FleetPulse.API.csproj": {}
   },
   "projects": {
-    "C:\\Users\\jcrod\\Desktop\\FleetPulse\\backend\\FleetPulse.API\\FleetPulse.API.csproj": {
+    "C:\\Users\\jcrod\\Desktop\\HeavyOps\\backend\\FleetPulse.API\\FleetPulse.API.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\jcrod\\Desktop\\FleetPulse\\backend\\FleetPulse.API\\FleetPulse.API.csproj",
+        "projectUniqueName": "C:\\Users\\jcrod\\Desktop\\HeavyOps\\backend\\FleetPulse.API\\FleetPulse.API.csproj",
         "projectName": "FleetPulse.API",
-        "projectPath": "C:\\Users\\jcrod\\Desktop\\FleetPulse\\backend\\FleetPulse.API\\FleetPulse.API.csproj",
+        "projectPath": "C:\\Users\\jcrod\\Desktop\\HeavyOps\\backend\\FleetPulse.API\\FleetPulse.API.csproj",
         "packagesPath": "C:\\Users\\jcrod\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\jcrod\\Desktop\\FleetPulse\\backend\\FleetPulse.API\\obj\\",
+        "outputPath": "C:\\Users\\jcrod\\Desktop\\HeavyOps\\backend\\FleetPulse.API\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\jcrod\\AppData\\Roaming\\NuGet\\NuGet.Config"
