@@ -1,0 +1,18 @@
+namespace HeavyOps.API.Models;
+
+public class ServiceLog
+{
+    public string Id { get; set; } = Guid.NewGuid().ToString();
+    public string ProjectId { get; set; } = "";
+    public string EquipmentId { get; set; } = "";
+    public DateTime DatePerformed { get; set; } = DateTime.UtcNow;
+    public string ServiceType { get; set; } = ""; // maintenance, repair, inspection, preventive
+    public string Description { get; set; } = "";
+    public int HoursWorked { get; set; }
+    public decimal LaborCost { get; set; }
+    public decimal PartsUsed { get; set; }
+    public string Technician { get; set; } = "";
+    public string Status { get; set; } = "completed"; // completed, pending, scheduled
+    public string Notes { get; set; } = "";
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
