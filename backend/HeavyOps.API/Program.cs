@@ -1,10 +1,9 @@
-using HeavyOps.Data.Models;
-using HeavyOps.API.Services;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.DependencyInjection;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services
-builder.Services.AddControllers();
+// Add CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
@@ -14,19 +13,16 @@ builder.Services.AddCors(options =>
               .AllowAnyHeader();
     });
 });
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
 
-// Add shared data storage
-builder.Services.AddSingleton<List<Project>>();
-builder.Services.AddSingleton<List<EquipmentAssignment>>();
-builder.Services.AddSingleton<List<CostEntry>>();
-builder.Services.AddSingleton<List<ServiceLog>>();
-builder.Services.AddSingleton<ReportGeneratorService>();
+// Add services
+builder.Services.AddControllers();
+builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// Configure middleware
+// Use CORS
+app.UseCors("AllowAll");
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -34,8 +30,6 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseCors("AllowAll");
 app.UseAuthorization();
 app.MapControllers();
-
 app.Run();
