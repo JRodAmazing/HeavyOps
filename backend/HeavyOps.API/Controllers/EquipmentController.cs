@@ -1,70 +1,39 @@
 using Microsoft.AspNetCore.Mvc;
-using HeavyOps.API.Models;
+using HeavyOps.Data.Models;
 
 namespace HeavyOps.API.Controllers;
 
 [ApiController]
-[Route("api/equipment-assignments")]
-public class EquipmentAssignmentController : ControllerBase
+[Route("api/[controller]")]
+public class EquipmentController : ControllerBase
 {
-    private static List<EquipmentAssignment> _assignments = new();
+    private static readonly List<Equipment> Equipment = new()
+    {
+        new Equipment { Id = "CAT320", Name = "Caterpillar 320D", Status = "operational", Hours = 2450 },
+        new Equipment { Id = "KOMATSU350", Name = "Komatsu PC350", Status = "operational", Hours = 3120 },
+        new Equipment { Id = "VOLVO240", Name = "Volvo EC240B", Status = "operational", Hours = 1890 }
+    };
 
     [HttpGet]
-    public IActionResult GetAll()
+    public ActionResult<List<Equipment>> GetAllEquipment()
     {
-        return Ok(_assignments);
+        return Ok(Equipment);
     }
 
     [HttpGet("{id}")]
-    public IActionResult GetById(string id)
+    public ActionResult<Equipment> GetEquipment(string id)
     {
-        var assignment = _assignments.FirstOrDefault(a => a.Id == id);
-        if (assignment == null)
+        var equipment = Equipment.FirstOrDefault(e => e.Id == id);
+        if (equipment == null)
             return NotFound();
-        return Ok(assignment);
-    }
-
-    [HttpGet("project/{projectId}")]
-    public IActionResult GetByProject(string projectId)
-    {
-        var assignments = _assignments.Where(a => a.ProjectId == projectId).ToList();
-        return Ok(assignments);
+        return Ok(equipment);
     }
 
     [HttpPost]
-    public IActionResult Create([FromBody] EquipmentAssignment assignment)
+    public ActionResult<Equipment> CreateEquipment([FromBody] Equipment equipment)
     {
-        if (assignment == null || string.IsNullOrEmpty(assignment.ProjectId) || string.IsNullOrEmpty(assignment.EquipmentId))
-            return BadRequest("ProjectId and EquipmentId are required");
-
-        _assignments.Add(assignment);
-        return CreatedAtAction(nameof(GetById), new { id = assignment.Id }, assignment);
-    }
-
-    [HttpPut("{id}")]
-    public IActionResult Update(string id, [FromBody] EquipmentAssignment assignment)
-    {
-        var existing = _assignments.FirstOrDefault(a => a.Id == id);
-        if (existing == null)
-            return NotFound();
-
-        existing.Status = assignment.Status;
-        existing.DailyRate = assignment.DailyRate;
-        existing.EstimatedDays = assignment.EstimatedDays;
-        existing.Notes = assignment.Notes;
-        existing.UnassignedDate = assignment.UnassignedDate;
-
-        return Ok(existing);
-    }
-
-    [HttpDelete("{id}")]
-    public IActionResult Delete(string id)
-    {
-        var assignment = _assignments.FirstOrDefault(a => a.Id == id);
-        if (assignment == null)
-            return NotFound();
-
-        _assignments.Remove(assignment);
-        return NoContent();
+        equipment.Id = Guid.NewGuid().ToString();
+        Equipment.Add(equipment);
+        return CreatedAtAction(nameof(GetEquipment), new { id = equipment.Id }, equipment);
     }
 }
