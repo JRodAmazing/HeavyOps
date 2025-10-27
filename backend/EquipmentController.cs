@@ -69,10 +69,3 @@ public class Equipment
     public string Status { get; set; } = "operational";
     public int Hours { get; set; }
 }
-```
-
-## ✅ Step 3: Restart Backend
-
-** In the PowerShell where backend is running:**
-```
-Press Ctrl+C to stop it
